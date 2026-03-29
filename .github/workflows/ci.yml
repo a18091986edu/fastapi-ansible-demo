@@ -2,73 +2,27 @@ name: CI Pipeline
 
 on:
 push:
-branches: [ "main" ]
+branches:
+- main
 
 jobs:
 build:
 runs-on: ubuntu-latest
 
+```
 steps:
-  # 1. Checkout
-  - name: Checkout code
+  - name: Checkout
     uses: actions/checkout@v4
 
-  # 2. Build image
-  - name: Build Docker image
+  - name: Build image
     run: docker build -t fastapi-app .
 
-  # 3. Run container
   - name: Run container
-    run: |
-      docker run -d -p 8001:8001 --name fastapi_app fastapi-app
+    run: docker run -d -p 8001:8001 --name fastapi_app fastapi-app
 
-  # 4. Show containers
   - name: Show containers
-    run: docker ps -a
+    run: docker ps
 
-  # 5. Logs (сразу и позже)
-  - name: Initial logs
+  - name: Show logs
     run: docker logs fastapi_app
-
-  # 6. Проверка процессов
-  - name: Check processes
-    run: docker exec fastapi_app ps aux
-
-  # 7. Проверка uvicorn
-  - name: Check uvicorn process
-    run: docker exec fastapi_app pgrep -f uvicorn || echo "uvicorn NOT FOUND"
-
-  # 8. Проверка портов
-  - name: Check listening ports
-    run: docker exec fastapi_app ss -tuln || netstat -tuln
-
-  # 9. Проверка curl
-  - name: Check curl exists
-    run: docker exec fastapi_app which curl || echo "curl NOT FOUND"
-
-  # 10. Пробуем curl внутри контейнера (несколько раз)
-  - name: Test API inside container (retry)
-    run: |
-      for i in {1..10}; do
-        echo "Attempt $i"
-        docker exec fastapi_app curl -v http://localhost:8001 && exit 0
-        sleep 2
-      done
-      echo "FAILED INSIDE CONTAINER"
-      exit 1
-
-  # 11. Пробуем снаружи
-  - name: Test API from host
-    run: |
-      for i in {1..10}; do
-        echo "Attempt $i"
-        curl -v http://localhost:8001 && exit 0
-        sleep 2
-      done
-      echo "FAILED FROM HOST"
-      exit 1
-
-  # 12. Финальные логи
-  - name: Final logs
-    run: docker logs fastapi_app
-
+```
