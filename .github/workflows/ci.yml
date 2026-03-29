@@ -6,28 +6,59 @@ on:
       - main
 
 jobs:
-  build:
+  build-test-push:
     runs-on: ubuntu-latest
 
     steps:
+      # 🔹 1. Забираем код
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 🔹 2. Создаём .env (для compose)
+      - name: Create .env
+        run: |
+          echo "POSTGRES_USER=user" >> .env
+          echo "POSTGRES_PASSWORD=password" >> .env
+          echo "POSTGRES_DB=mydb" >> .env
+
+      # 🔹 3. Поднимаем сервисы для теста
       - name: Start services
         run: docker compose up -d --build
-      - name: Wait for services
-        run: sleep 10
 
+      # 🔹 4. Ждём пока API поднимется
+      - name: Wait for API
+        run: |
+          for i in {1..10}; do
+            if curl -s http://localhost:8001 > /dev/null; then
+              echo "API is up"
+              break
+            fi
+            echo "Waiting for API..."
+            sleep 3
+          done
+
+      # 🔹 5. Тест API
       - name: Test API
         run: curl --fail http://localhost:8001
 
-      - name: Show containers
-        run: docker ps
-
+      # 🔹 6. Логи при падении
       - name: Show logs on failure
         if: failure()
-        run: docker logs fastapi_app
+        run: docker compose logs
 
+      # 🔹 7. Останавливаем всё
       - name: Cleanup
         if: always()
-        run: docker stop fastapi_app && docker rm fastapi_app
+        run: docker compose down -v
+
+      # 🔹 8. Логин в Docker Hub
+      - name: Login to DockerHub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USER }} --password-stdin
+
+      # 🔹 9. Билдим image
+      - name: Build image
+        run: docker build -t ${{ secrets.DOCKER_USER }}/fastapi_app:${{ github.sha }} .
+
+      # 🔹 10. Пушим image
+      - name: Push image
+        run: docker push ${{ secrets.DOCKER_USER }}/fastapi_app:latest
