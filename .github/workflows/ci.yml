@@ -88,9 +88,14 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+          printf "%s" "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
+
+      - name: Debug key
+        run: |
+          ls -la ~/.ssh
+          head -n 3 ~/.ssh/id_rsa
 
       # 🔹 14. Deploy via Ansible
       - name: Deploy
