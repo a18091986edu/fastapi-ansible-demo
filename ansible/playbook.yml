@@ -1,0 +1,14 @@
+- name: Run docker compose via CLI
+  hosts: localhost
+  become: false
+
+  tasks:
+    - name: Stop containers
+      command: docker compose down
+      args:
+        chdir: "{{ playbook_dir }}/.."
+
+    - name: Start containers
+      command: docker compose up -d --build
+      args:
+        chdir: "{{ playbook_dir }}/.."
