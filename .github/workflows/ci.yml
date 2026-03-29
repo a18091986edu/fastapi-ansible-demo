@@ -13,14 +13,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build image
-        run: docker build -t fastapi-app .
-
-      - name: Run container
-        run: docker run -d -p 8001:8000 --name fastapi_app fastapi-app
-
-      - name: Wait for app
-        run: sleep 5
+      - name: Start services
+        run: docker compose up -d --build
+      - name: Wait for services
+        run: sleep 10
 
       - name: Test API
         run: curl --fail http://localhost:8001
