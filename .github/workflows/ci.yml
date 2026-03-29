@@ -96,4 +96,5 @@ jobs:
       - name: Deploy
         run: |
           source ansible-venv/bin/activate
-          ansible-playbook -i deploy/inventory.ini deploy/deploy.yml
+          ansible-playbook -i deploy/inventory.ini deploy/deploy.yml \
+            --private-key ~/.ssh/id_rsa
