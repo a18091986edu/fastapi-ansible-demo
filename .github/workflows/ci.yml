@@ -31,21 +31,6 @@ jobs:
         run: docker ps -a
 
       # 4. Проверяем API
-      - name: Wait for API
+      - name: Test API inside container
         run: |
-          for i in {1..20}; do
-            echo "Attempt $i..."
-            response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8001 || true)
-
-            if [ "$response" = "200" ]; then
-              echo "API is up!"
-              exit 0
-            fi
-
-            echo "Status: $response"
-            sleep 2
-          done
-
-          echo "API did not start in time"
-          docker logs myapp
-          exit 1
+          docker exec myapp curl -s http://localhost:8001

@@ -7,6 +7,8 @@ WORKDIR /app
 # Копируем файл зависимостей
 COPY app/requirements.txt .
 
+RUN apt-get update && apt-get install -y curl
+
 # Устанавливаем зависимости
 RUN pip install --no-cache-dir -r requirements.txt
 
