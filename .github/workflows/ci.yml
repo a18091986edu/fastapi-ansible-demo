@@ -19,7 +19,16 @@ jobs:
 
       # 3. Запускаем контейнер
       - name: Run container
-        run: docker run -d -p 8001:8001 fastapi-app
+        run: |
+            docker run -d -p 8001:8001 --name myapp fastapi-app
+      
+      - name: Show container logs
+        run: |
+          sleep 5
+          docker logs myapp
+
+      - name: Show running containers
+        run: docker ps -a
 
       # 4. Проверяем API
       - name: Wait for API
