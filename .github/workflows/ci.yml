@@ -8,7 +8,6 @@ jobs:
 build:
 runs-on: ubuntu-latest
 
-```
 steps:
   # 1. Checkout
   - name: Checkout code
@@ -72,4 +71,4 @@ steps:
   # 12. Финальные логи
   - name: Final logs
     run: docker logs fastapi_app
-```
+
