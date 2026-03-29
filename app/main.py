@@ -34,7 +34,7 @@ conn = connect_to_db()
 
 @app.get("/")
 def read_root():
-    return {"message": "Hello with DB!"}
+    return {"message": "Hello with DB! NEW"}
 
 
 @app.get("/db")

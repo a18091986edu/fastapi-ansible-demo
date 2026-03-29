@@ -11,23 +11,6 @@ jobs:
 
     steps:
 
-      # 🔹 13. Setup SSH
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
-
-      - name: Debug key
-        run: |
-          ls -la ~/.ssh
-          head -n 10 ~/.ssh/id_rsa
-      
-      - name: Test SSH connection
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@${{ secrets.HOST }} "echo SSH OK"
-
       # 🔹 1. Checkout
       - name: Checkout
         uses: actions/checkout@v4
@@ -102,6 +85,14 @@ jobs:
           source ansible-venv/bin/activate
           pip install ansible
 
+      # 🔹 13. Setup SSH connection
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
 
 
       # 🔹 14. Deploy via Ansible
