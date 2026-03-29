@@ -17,10 +17,21 @@ jobs:
         run: docker build -t fastapi-app .
 
       - name: Run container
-        run: docker run -d -p 8001:8001 --name fastapi_app fastapi-app
+        run: docker run -d -p 8001:8000 --name fastapi_app fastapi-app
+
+      - name: Wait for app
+        run: sleep 5
+
+      - name: Test API
+        run: curl --fail http://localhost:8001
 
       - name: Show containers
         run: docker ps
 
-      - name: Show logs
+      - name: Show logs on failure
+        if: failure()
         run: docker logs fastapi_app
+
+      - name: Cleanup
+        if: always()
+        run: docker stop fastapi_app && docker rm fastapi_app
