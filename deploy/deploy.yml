@@ -1,0 +1,14 @@
+- hosts: app
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Pull latest images
+      command: docker compose pull
+      args:
+        chdir: /root/containers/test_ci_cd
+
+    - name: Restart services
+      command: docker compose up -d
+      args:
+        chdir: /root/containers/test_ci_cd

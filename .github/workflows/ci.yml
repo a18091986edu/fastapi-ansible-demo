@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  build-test-push:
+  build-test-push-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -14,7 +14,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 🔹 2. Build test image (локальный)
+      # 🔹 2. Build test image
       - name: Build test image
         run: docker build -t fastapi_app:test .
 
@@ -25,7 +25,7 @@ jobs:
           echo "POSTGRES_PASSWORD=password" >> .env
           echo "POSTGRES_DB=mydb" >> .env
 
-      # 🔹 4. Override compose для CI
+      # 🔹 4. Override compose
       - name: Create docker-compose.ci.yml
         run: |
           cat <<EOF > docker-compose.ci.yml
@@ -34,11 +34,11 @@ jobs:
               image: fastapi_app:test
           EOF
 
-      # 🔹 5. Запуск сервисов
+      # 🔹 5. Start services
       - name: Start services
         run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
 
-      # 🔹 6. Ожидание API
+      # 🔹 6. Wait for API
       - name: Wait for API
         run: |
           for i in {1..10}; do
@@ -49,36 +49,51 @@ jobs:
             echo "Waiting for API..."
             sleep 3
           done
-          echo "API did not start"
           docker compose logs
           exit 1
 
-      # 🔹 7. Тест
+      # 🔹 7. Test API
       - name: Test API
         run: curl --fail http://localhost:8001
 
-      # 🔹 8. Логи при падении
-      - name: Show logs on failure
-        if: failure()
-        run: docker compose logs
-
-      # 🔹 9. Cleanup
+      # 🔹 8. Cleanup
       - name: Cleanup
         if: always()
         run: docker compose down -v
 
-      # 🔹 10. Login DockerHub
+      # 🔹 9. Login DockerHub
       - name: Login to DockerHub
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USER }} --password-stdin
 
-      # 🔹 11. Build production image
+      # 🔹 10. Build production image
       - name: Build production image
         run: |
           docker build -t ${{ secrets.DOCKER_USER }}/fastapi_app:${{ github.sha }} .
           docker tag ${{ secrets.DOCKER_USER }}/fastapi_app:${{ github.sha }} ${{ secrets.DOCKER_USER }}/fastapi_app:latest
 
-      # 🔹 12. Push images
+      # 🔹 11. Push images
       - name: Push images
         run: |
           docker push ${{ secrets.DOCKER_USER }}/fastapi_app:${{ github.sha }}
           docker push ${{ secrets.DOCKER_USER }}/fastapi_app:latest
+
+      # 🔹 12. Install Ansible
+      - name: Install Ansible
+        run: |
+          python3 -m venv ansible-venv
+          source ansible-venv/bin/activate
+          pip install ansible
+
+      # 🔹 13. Setup SSH
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
+
+      # 🔹 14. Deploy via Ansible
+      - name: Deploy
+        run: |
+          source ansible-venv/bin/activate
+          ansible-playbook -i deploy/inventory.ini deploy/deploy.yml
