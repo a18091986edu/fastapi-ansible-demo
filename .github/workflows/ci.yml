@@ -1,0 +1,28 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Клонируем репозиторий
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Собираем Docker образ
+      - name: Build Docker image
+        run: docker build -t fastapi-app .
+
+      # 3. Запускаем контейнер
+      - name: Run container
+        run: |
+          docker run -d -p 8001:8001 fastapi-app
+          sleep 5
+
+      # 4. Проверяем API
+      - name: Test API
+        run: curl http://localhost:8001
