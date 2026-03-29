@@ -30,6 +30,9 @@ jobs:
       - name: Show running containers
         run: docker ps -a
 
+      - name: Check curl inside container
+        run: docker exec myapp which curl
+
       # 4. Проверяем API
       - name: Test API inside container
         run: |
