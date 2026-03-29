@@ -14,6 +14,19 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@${{ secrets.HOST }} "echo SSH OK"
 
+      # 🔹 13. Setup SSH
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf "%s" "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
+
+      - name: Debug key
+        run: |
+          ls -la ~/.ssh
+          head -n 3 ~/.ssh/id_rsa
+
       # 🔹 1. Checkout
       - name: Checkout
         uses: actions/checkout@v4
@@ -88,18 +101,7 @@ jobs:
           source ansible-venv/bin/activate
           pip install ansible
 
-      # 🔹 13. Setup SSH
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          printf "%s" "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
 
-      - name: Debug key
-        run: |
-          ls -la ~/.ssh
-          head -n 3 ~/.ssh/id_rsa
 
       # 🔹 14. Deploy via Ansible
       - name: Deploy
