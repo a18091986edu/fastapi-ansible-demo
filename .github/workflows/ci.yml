@@ -10,55 +10,75 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 🔹 1. Забираем код
+      # 🔹 1. Checkout
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 🔹 2. Создаём .env (для compose)
+      # 🔹 2. Build test image (локальный)
+      - name: Build test image
+        run: docker build -t fastapi_app:test .
+
+      # 🔹 3. Create .env
       - name: Create .env
         run: |
           echo "POSTGRES_USER=user" >> .env
           echo "POSTGRES_PASSWORD=password" >> .env
           echo "POSTGRES_DB=mydb" >> .env
 
-      # 🔹 3. Поднимаем сервисы для теста
-      - name: Start services
-        run: docker compose up -d --build
+      # 🔹 4. Override compose для CI
+      - name: Create docker-compose.ci.yml
+        run: |
+          cat <<EOF > docker-compose.ci.yml
+          services:
+            app:
+              image: fastapi_app:test
+          EOF
 
-      # 🔹 4. Ждём пока API поднимется
+      # 🔹 5. Запуск сервисов
+      - name: Start services
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
+
+      # 🔹 6. Ожидание API
       - name: Wait for API
         run: |
           for i in {1..10}; do
             if curl -s http://localhost:8001 > /dev/null; then
               echo "API is up"
-              break
+              exit 0
             fi
             echo "Waiting for API..."
             sleep 3
           done
+          echo "API did not start"
+          docker compose logs
+          exit 1
 
-      # 🔹 5. Тест API
+      # 🔹 7. Тест
       - name: Test API
         run: curl --fail http://localhost:8001
 
-      # 🔹 6. Логи при падении
+      # 🔹 8. Логи при падении
       - name: Show logs on failure
         if: failure()
         run: docker compose logs
 
-      # 🔹 7. Останавливаем всё
+      # 🔹 9. Cleanup
       - name: Cleanup
         if: always()
         run: docker compose down -v
 
-      # 🔹 8. Логин в Docker Hub
+      # 🔹 10. Login DockerHub
       - name: Login to DockerHub
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USER }} --password-stdin
 
-      # 🔹 9. Билдим image
-      - name: Build image
-        run: docker build -t ${{ secrets.DOCKER_USER }}/fastapi_app:${{ github.sha }} .
+      # 🔹 11. Build production image
+      - name: Build production image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USER }}/fastapi_app:${{ github.sha }} .
+          docker tag ${{ secrets.DOCKER_USER }}/fastapi_app:${{ github.sha }} ${{ secrets.DOCKER_USER }}/fastapi_app:latest
 
-      # 🔹 10. Пушим image
-      - name: Push image
-        run: docker push ${{ secrets.DOCKER_USER }}/fastapi_app:latest
+      # 🔹 12. Push images
+      - name: Push images
+        run: |
+          docker push ${{ secrets.DOCKER_USER }}/fastapi_app:${{ github.sha }}
+          docker push ${{ secrets.DOCKER_USER }}/fastapi_app:latest
